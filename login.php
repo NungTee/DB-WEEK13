@@ -8,14 +8,47 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
  $password=(string)($_POST['password']??'');
  if (!filter_var($email,FILTER_VALIDATE_EMAIL) || $password==='') $error='Enter email and password.';
  else {
- // TODO 1: Query a single user by email using a prepared statement.
- // $sql = 'SELECT ... FROM users WHERE ... = ? LIMIT 1';
- // TODO 2: Use mysqli_stmt_bind_param / execute / bind_result / fetch.
- // TODO 3: Verify plaintext password with password_verify($password, $hash).
- // TODO 4: On success, session_regenerate_id(true) and set session values:
- // $_SESSION['user_id'], $_SESSION['profile_id'], $_SESSION['email'].
- // TODO 5: Redirect to skills.php and exit.
- $error='TODO: complete login authentication first.';
+     // TODO 1: Query a single user by email using a prepared statement.
+     $sql = 'SELECT id, profile_id, email, password_hash FROM users WHERE email = ? LIMIT 1';
+     if ($stmt = mysqli_prepare($conn, $sql)) {
+         
+         // TODO 2: Use mysqli_stmt_bind_param / execute / bind_result / fetch.
+         mysqli_stmt_bind_param($stmt, 's', $email);
+         mysqli_stmt_execute($stmt);
+         
+         $user_id = null;
+         $profile_id = null;
+         $user_email = null;
+         $hash = null;
+         
+         mysqli_stmt_bind_result($stmt, $user_id, $profile_id, $user_email, $hash);
+         
+         if (mysqli_stmt_fetch($stmt)) {
+             mysqli_stmt_close($stmt);
+             
+             // TODO 3: Verify plaintext password with password_verify($password, $hash).
+             // แปลง (string)$hash เพื่อป้องกัน Linter เตือนเรื่อง null type
+             if (password_verify($password, (string)$hash)) {
+                 
+                 // TODO 4: On success, session_regenerate_id(true) and set session values
+                 session_regenerate_id(true);
+                 $_SESSION['user_id'] = $user_id;
+                 $_SESSION['profile_id'] = $profile_id;
+                 $_SESSION['email'] = $user_email;
+                 
+                 // TODO 5: Redirect to skills.php and exit.
+                 header('Location: skills.php');
+                 exit;
+             } else {
+                 $error = 'Invalid email or password.';
+             }
+         } else {
+             mysqli_stmt_close($stmt);
+             $error = 'Invalid email or password.';
+         }
+     } else {
+         $error = 'Database query failed.';
+     }
  }
 }
 ?>
